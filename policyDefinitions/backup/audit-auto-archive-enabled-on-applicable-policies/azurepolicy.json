@@ -1,0 +1,142 @@
+{
+    "name": "5ccf8252-0b38-5eef-bb18-bfe9e313cc74",
+    "type": "Microsoft.Authorization/policyDefinitions",
+    "properties": {
+        "displayName": "Backup policies should have archive tiering enabled where applicable",
+        "description": "Enables archive tier on IaaS VMs and SQL IaaS VM backup policies where applicable. Please refer to the policy documentation for more details: https://learn.microsoft.com/en-us/azure/backup/archive-tier-support",
+        "metadata": {
+            "version": "1.0.0",
+            "category": "Backup"
+        },
+        "mode": "All",
+        "parameters": {
+            "effect": {
+                "type": "String",
+                "metadata": {
+                    "displayName": "Effect",
+                    "description": "Append, Deny, Audit or Disable the execution of the Policy"
+                },
+                "allowedValues": [
+                    "Audit",
+                    "Disabled"
+                ],
+                "defaultValue": "Audit"
+            }
+        },
+        "policyRule": {
+            "if": {
+                "allOf": [
+                    {
+                        "field": "type",
+                        "equals": "Microsoft.RecoveryServices/vaults/backupPolicies"
+                    },
+                    {
+                        "anyOf": [
+                            {
+                                "allOf": [
+                                    {
+                                        "field": "Microsoft.RecoveryServices/Vaults/backupPolicies/backupManagementType",
+                                        "equals": "AzureIaasVM"
+                                    },
+                                    {
+                                        "anyOf": [
+                                            {
+                                                "allOf": [
+                                                    {
+                                                        "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureIaasVM.retentionPolicy.LongTermRetentionPolicy.yearlySchedule.retentionDuration.count",
+                                                        "greater": 0
+                                                    },
+                                                    {
+                                                        "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureIaasVM.retentionPolicy.LongTermRetentionPolicy.yearlySchedule.retentionDuration.count",
+                                                        "exists": true
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "allOf": [
+                                                    {
+                                                        "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureIaasVM.retentionPolicy.LongTermRetentionPolicy.monthlySchedule.retentionDuration.count",
+                                                        "greater": 8
+                                                    },
+                                                    {
+                                                        "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureIaasVM.retentionPolicy.LongTermRetentionPolicy.monthlySchedule.retentionDuration.count",
+                                                        "exists": true
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "value": "[contains(string(field('Microsoft.RecoveryServices/vaults/backupPolicies/AzureIaasVM.tieringPolicy')),'DoNotTier')]",
+                                        "equals": true
+                                    }
+                                ]
+                            },
+                            {
+                                "allOf": [
+                                    {
+                                        "field": "Microsoft.RecoveryServices/Vaults/backupPolicies/backupManagementType",
+                                        "equals": "AzureWorkload"
+                                    },
+                                    {
+                                        "count": {
+                                            "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*]",
+                                            "where": {
+                                                "anyOf": [
+                                                    {
+                                                        "allOf": [
+                                                            {
+                                                                "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].retentionPolicy.LongTermRetentionPolicy.yearlySchedule.retentionDuration.count",
+                                                                "greater": 0
+                                                            },
+                                                            {
+                                                                "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].retentionPolicy.LongTermRetentionPolicy.yearlySchedule.retentionDuration.count",
+                                                                "exists": true
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "allOf": [
+                                                            {
+                                                                "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].retentionPolicy.LongTermRetentionPolicy.monthlySchedule.retentionDuration.count",
+                                                                "greater": 7
+                                                            },
+                                                            {
+                                                                "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].retentionPolicy.LongTermRetentionPolicy.monthlySchedule.retentionDuration.count",
+                                                                "exists": true
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "allOf": [
+                                                            {
+                                                                "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].retentionPolicy.LongTermRetentionPolicy.weeklySchedule.retentionDuration.count",
+                                                                "greater": 32
+                                                            },
+                                                            {
+                                                                "field": "Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].retentionPolicy.LongTermRetentionPolicy.weeklySchedule.retentionDuration.count",
+                                                                "exists": true
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "greater": 0
+                                    },
+                                    {
+                                        "value": "[contains(string(field('Microsoft.RecoveryServices/vaults/backupPolicies/AzureWorkload.subProtectionPolicy[*].tieringPolicy')),'DoNotTier')]",
+                                        "equals": true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "then": {
+                "effect": "[parameters('effect')]"
+            }
+        }
+    }
+}
